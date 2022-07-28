@@ -1,12 +1,23 @@
 mod commands;
 
 use frankenstein::{AllowedUpdate, Error, UpdateContent};
-use frankenstein::{Api, GetUpdatesParams, TelegramApi};
-use std::thread;
-use crate::commands as cmd;
+use frankenstein::{Api, GetUpdatesParams, SendMessageParams, TelegramApi};
+use reqwest::Client;
+use tokio;
+
+#[macro_export]
+macro_rules! error {
+    () => {
+        Err("Something goes wrong! Plese, try again later!")
+    };
+    ($r:expr) => {
+        Err($r)
+    };
+}
 
 pub struct Bot {
     api: Api,
+    client: Client,
 }
 
 impl Bot {
@@ -15,7 +26,9 @@ impl Bot {
 
         api.get_me()?;
 
-        Ok(Box::leak(Box::new(Bot { api })))
+        let client = Client::new();
+
+        Ok(Box::leak(Box::new(Bot { api, client })))
     }
 
     pub fn get_updates(&'static self) {
@@ -34,10 +47,11 @@ impl Bot {
                             _ => unreachable!(),
                         };
 
-                        if let Ok(command) = cmd::has_valid_command(&message) {
-                            if let Err(_) = thread::Builder::new().spawn(move || command(&self.api, message)) {
-                                // Todo thread spawn error handler
-                            }
+                        if let Ok(command) = commands::has_valid_command(&message) {
+                            tokio::spawn(async move {
+                                commands::execute_command(&self.api, &self.client, command, message)
+                                    .await
+                            });
                         }
 
                         update_params = update_params_builder
@@ -46,8 +60,19 @@ impl Bot {
                             .build();
                     }
                 }
-                Err(error) => panic!("Failed to get updates: {:?}", error)
+                Err(error) => panic!("Failed to get updates: {:?}", error),
             }
         }
+    }
+}
+
+fn send_message(api: &Api, chat_id: i64, text: &str) {
+    let send_message_params = SendMessageParams::builder()
+        .chat_id(chat_id)
+        .text(text)
+        .build();
+
+    if let Err(error) = api.send_message(&send_message_params) {
+        panic!("Failed to send message: {:?}", error);
     }
 }
