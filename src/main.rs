@@ -2,7 +2,8 @@ use dotenv;
 use std::env;
 use yaid::Bot;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv::dotenv().ok();
 
     let token = env::var("TOKEN").expect("TOKEN must be set!");
