@@ -1,5 +1,6 @@
 mod commands;
 
+use commands::Command;
 use frankenstein::{AllowedUpdate, Error, UpdateContent};
 use frankenstein::{Api, GetUpdatesParams, SendMessageParams, TelegramApi};
 use reqwest::Client;
@@ -47,11 +48,8 @@ impl Bot {
                             _ => unreachable!(),
                         };
 
-                        if let Ok(command) = commands::has_valid_command(&message) {
-                            tokio::spawn(async move {
-                                commands::execute_command(&self.api, &self.client, command, message)
-                                    .await
-                            });
+                        if let Ok(command) = Command::new(&message) {
+                            tokio::spawn(async move { command.execute(&self, message).await });
                         }
 
                         update_params = update_params_builder
@@ -70,7 +68,7 @@ impl Bot {
             .chat_id(chat_id)
             .text(text)
             .build();
-    
+
         if let Err(error) = self.api.send_message(&send_message_params) {
             panic!("Failed to send message: {:?}", error);
         }

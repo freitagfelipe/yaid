@@ -2,30 +2,33 @@ mod download;
 mod help;
 mod start;
 
-use frankenstein::{Api, Message};
-use reqwest::Client;
+use frankenstein::Message;
 
-pub fn has_valid_command<'a, 'b>(message: &'a Message) -> Result<&'b str, ()> {
-    let text = match message.text.as_ref() {
-        Some(text) => text,
-        None => return Err(()),
-    };
-
-    let command = text.split(" ").collect::<Vec<&str>>()[0];
-
-    match command {
-        "/start" => Ok("start"),
-        "/download" => Ok("download"),
-        "/help" => Ok("help"),
-        _ => Err(()),
-    }
+pub enum Command {
+    Start,
+    Dowload,
+    Help,
 }
 
-pub async fn execute_command(api: &Api, client: &Client, command: &str, message: Message) {
-    match command {
-        "start" => start::execute(api, message),
-        "download" => download::execute(api, client, message).await,
-        "help" => help::execute(api, message),
-        _ => unreachable!(),
+impl Command {
+    pub fn new(message: &Message) -> Result<Self, ()> {
+        let text = message.text.as_ref().ok_or(())?;
+
+        let command = text.split(" ").collect::<Vec<&str>>()[0];
+
+        match command {
+            "/start" => Ok(Command::Start),
+            "/download" => Ok(Command::Dowload),
+            "/help" => Ok(Command::Help),
+            _ => Err(()),
+        }
+    }
+
+    pub async fn execute(self, bot: &crate::Bot, message: Message) {
+        match self {
+            Command::Start => start::execute(bot, message),
+            Command::Dowload => download::execute(bot, message).await,
+            Command::Help => help::execute(bot, message),
+        };
     }
 }
