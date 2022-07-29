@@ -2,17 +2,30 @@ mod commands;
 
 use commands::Command;
 use frankenstein::{AllowedUpdate, Error, UpdateContent};
-use frankenstein::{Api, GetUpdatesParams, SendMessageParams, TelegramApi};
+use frankenstein::{
+    Api, GetUpdatesParams, SendMessageParams, SendPhotoParams, SendVideoParams, TelegramApi,
+};
 use reqwest::Client;
+use std::path::PathBuf;
 use tokio;
 
 #[macro_export]
 macro_rules! error {
-    () => {
-        Err("Something goes wrong! Plese, try again later!")
+    (@reason $e:expr) => {
+        eprintln!("Error: {}", $e);
     };
-    ($r:expr) => {
-        Err($r)
+    ($e:expr, $b:expr $(, $o:expr)?) => {
+        {
+            if $b {
+                error!(@reason $e);
+
+                return  Err("Something went wrong! Please, try again later!".to_string());
+            } else {
+                $(error!(@reason $o))?
+
+                return Err($e);
+            }
+        }
     };
 }
 
@@ -69,8 +82,34 @@ impl Bot {
             .text(text)
             .build();
 
-        if let Err(error) = self.api.send_message(&send_message_params) {
-            panic!("Failed to send message: {:?}", error);
+        if let Err(err) = self.api.send_message(&send_message_params) {
+            panic!("Failed to send message: {}", err);
+        }
+    }
+
+    fn send_photo(&self, chat_id: i64, file_path: PathBuf) {
+        let send_photo_params = SendPhotoParams::builder()
+            .chat_id(chat_id)
+            .photo(file_path)
+            .build();
+
+        if let Err(err) = self.api.send_photo(&send_photo_params) {
+            eprint!("Failed to send photo: {}", err);
+
+            self.send_message(chat_id, "Something goes wrong! Please try again later!");
+        }
+    }
+
+    fn send_video(&self, chat_id: i64, file_path: PathBuf) {
+        let send_video_params = SendVideoParams::builder()
+            .chat_id(chat_id)
+            .video(file_path)
+            .build();
+
+        if let Err(err) = self.api.send_video(&send_video_params) {
+            eprint!("Failed to send photo: {}", err);
+
+            self.send_message(chat_id, "Something goes wrong! Please try again later!");
         }
     }
 }
