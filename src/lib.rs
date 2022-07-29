@@ -3,32 +3,35 @@ mod commands;
 use commands::Command;
 use frankenstein::{AllowedUpdate, Error, UpdateContent};
 use frankenstein::{
-    Api, GetUpdatesParams, SendMessageParams, SendPhotoParams, SendVideoParams, TelegramApi,
+    Api, GetUpdatesParams, Message, SendMessageParams, SendPhotoParams, SendVideoParams,
+    TelegramApi,
 };
 use reqwest::Client;
 use std::path::PathBuf;
+use std::process;
 use tokio;
 
 #[macro_export]
 macro_rules! error {
-    (@reason $e:expr) => {
-        eprintln!("Error: {}", $e);
+    (@reason $r:expr) => {
+        eprintln!("Error: {}", $r)
     };
-    ($e:expr, $b:expr $(, $o:expr)?) => {
+    (@error $e:expr) => {
+        return Err($e.to_string())
+    };
+    (r: $r:expr) => {
         {
-            if $b {
-                error!(@reason $e);
+            error!(@reason $r);
 
-                return  Err("Something went wrong! Please, try again later!".to_string());
-            } else {
-                $(error!(@reason $o))?
-
-                return Err($e);
-            }
+            error!(@error "Something went wrong! Please try again later!")
         }
     };
-}
+    (e: $e:expr $(, r: $r:expr )?) => {
+        $( error!(@reason $r); )?
 
+        error!(@error $e)
+    }
+}
 pub struct Bot {
     api: Api,
     client: Client,
@@ -51,40 +54,53 @@ impl Bot {
         let mut update_params = update_params_builder.clone().build();
 
         loop {
-            let result = self.api.get_updates(&update_params);
+            let response = match self.api.get_updates(&update_params) {
+                Ok(response) => response,
+                Err(err) => {
+                    eprintln!("Failed to get updates: {}", err);
 
-            match result {
-                Ok(response) => {
-                    for update in response.result {
-                        let message = match update.content {
-                            UpdateContent::Message(message) => message,
-                            _ => unreachable!(),
-                        };
+                    continue;
+                }
+            };
 
-                        if let Ok(command) = Command::new(&message) {
-                            tokio::spawn(async move { command.execute(&self, message).await });
-                        }
+            for update in response.result {
+                update_params = update_params_builder
+                    .clone()
+                    .offset(update.update_id + 1)
+                    .build();
 
-                        update_params = update_params_builder
-                            .clone()
-                            .offset(update.update_id + 1)
-                            .build();
+                let message = match update.content {
+                    UpdateContent::Message(message) => message,
+                    _ => unreachable!(),
+                };
+
+                if let Some(user) = message.from.as_ref() {
+                    if user.is_bot {
+                        continue;
                     }
                 }
-                Err(error) => panic!("Failed to get updates: {:?}", error),
+
+                if let Ok(command) = Command::new(&message) {
+                    tokio::spawn(async move { command.execute(&self, message).await });
+                }
             }
         }
     }
 
-    fn send_message(&self, chat_id: i64, text: &str) {
+    fn send_message(&self, chat_id: i64, text: &str) -> Message {
         let send_message_params = SendMessageParams::builder()
             .chat_id(chat_id)
             .text(text)
             .build();
 
-        if let Err(err) = self.api.send_message(&send_message_params) {
-            panic!("Failed to send message: {}", err);
-        }
+        self.api
+            .send_message(&send_message_params)
+            .unwrap_or_else(|err| {
+                eprint!("Failed to send message: {}", err);
+
+                process::exit(1);
+            })
+            .result
     }
 
     fn send_photo(&self, chat_id: i64, file_path: PathBuf) {
@@ -94,9 +110,9 @@ impl Bot {
             .build();
 
         if let Err(err) = self.api.send_photo(&send_photo_params) {
-            eprint!("Failed to send photo: {}", err);
+            self.send_message(chat_id, "Something went wrong! Please try again later!");
 
-            self.send_message(chat_id, "Something goes wrong! Please try again later!");
+            panic!("Failed to send photo: {}", err);
         }
     }
 
@@ -107,9 +123,9 @@ impl Bot {
             .build();
 
         if let Err(err) = self.api.send_video(&send_video_params) {
-            eprint!("Failed to send photo: {}", err);
+            self.send_message(chat_id, "Something went wrong! Please try again later!");
 
-            self.send_message(chat_id, "Something goes wrong! Please try again later!");
+            panic!("Failed to send video: {}", err);
         }
     }
 }
