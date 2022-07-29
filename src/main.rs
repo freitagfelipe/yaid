@@ -8,7 +8,7 @@ async fn main() {
 
     let token = env::var("TOKEN").expect("TOKEN must be set!");
 
-    let bot: &'static Bot = Bot::new(&token).expect("Invalid token!");
+    let bot: &'static Bot = Bot::new(&token).expect("Invalid token or no internet connection!");
 
     bot.get_updates();
 }
