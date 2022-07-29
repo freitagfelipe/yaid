@@ -64,15 +64,15 @@ impl Bot {
             }
         }
     }
-}
 
-fn send_message(api: &Api, chat_id: i64, text: &str) {
-    let send_message_params = SendMessageParams::builder()
-        .chat_id(chat_id)
-        .text(text)
-        .build();
-
-    if let Err(error) = api.send_message(&send_message_params) {
-        panic!("Failed to send message: {:?}", error);
+    fn send_message(&self, chat_id: i64, text: &str) {
+        let send_message_params = SendMessageParams::builder()
+            .chat_id(chat_id)
+            .text(text)
+            .build();
+    
+        if let Err(error) = self.api.send_message(&send_message_params) {
+            panic!("Failed to send message: {:?}", error);
+        }
     }
 }
