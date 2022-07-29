@@ -1,5 +1,5 @@
-use frankenstein::{Api, Message};
+use frankenstein::Message;
 
-pub fn execute(api: &Api, message: Message) {
-    crate::send_message(api, message.chat.id, "Help message!");
+pub fn execute(bot: &crate::Bot, message: Message) {
+    bot.send_message(message.chat.id, "Help message!");
 }
