@@ -5,16 +5,36 @@ use std::env;
 use std::error::Error;
 use std::fs::{self, File};
 use std::io;
+use std::path::PathBuf;
 
 #[derive(Deserialize)]
 struct ResultPost {
-    count: u32,
     urls: Vec<String>,
 }
 
-async fn fetch_post<'a>(bot: &crate::Bot, post_url: &str) -> Result<ResultPost, &'a str> {
-    let url = env::var("URL").expect("URL must be set!");
-    let auth_token = env::var("AUTH_TOKEN").expect("AUTH_TOKEN must be set!");
+enum FileType {
+    JPEG,
+    MP4,
+}
+
+pub struct DownloadedFile {
+    ftype: FileType,
+    fpath: PathBuf,
+}
+
+impl FileType {
+    fn new(ftype: &str) -> Self {
+        match ftype {
+            "jpeg" => FileType::JPEG,
+            "mp4" => FileType::MP4,
+            _ => unreachable!(),
+        }
+    }
+}
+
+async fn fetch_post(bot: &crate::Bot, post_url: &str) -> Result<ResultPost, String> {
+    let url = env::var("URL").unwrap();
+    let auth_token = env::var("AUTH_TOKEN").unwrap();
 
     let response = bot
         .client
@@ -26,44 +46,30 @@ async fn fetch_post<'a>(bot: &crate::Bot, post_url: &str) -> Result<ResultPost, 
 
     let response = match response {
         Ok(response) => response,
-        Err(err) => {
-            eprintln!("Error while getting post: {}", err);
-
-            return error!();
-        }
+        Err(err) => error!(r: err),
     };
 
     let parsed_response = match response.status() {
         reqwest::StatusCode::OK => match response.json::<ResultPost>().await {
             Ok(parsed) => parsed,
-            Err(_) => {
-                eprintln!("Error while parsing the object to ResultPost!");
-
-                return error!("a");
-            }
+            Err(_) => error!(r: "Can't parse the response to ResultPost!"),
         },
         reqwest::StatusCode::NOT_FOUND => {
-            return error!("I can't download this post because the post not exists or is from a private account!");
+            error!(e: "I can't download this post because the post not exists or is from a private account!")
         }
-        reqwest::StatusCode::NOT_ACCEPTABLE => {
-            return error!("Invaid url! See /help for assistance!");
-        }
-        status => {
-            eprintln!("Response error with status: {}", status);
-
-            return error!();
-        }
+        reqwest::StatusCode::NOT_ACCEPTABLE => error!(e: "Invaid url! See /help for assistance!"),
+        status => error!(r: format!("Reponse error with status: {}", status)),
     };
 
     Ok(parsed_response)
 }
 
-async fn download_post<'a>(
+async fn download_post(
     bot: &crate::Bot,
     url: &str,
     folder_path: &str,
     file_name: usize,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<DownloadedFile, Box<dyn Error>> {
     let response = bot.client.get(url).send().await?;
 
     let file_type = response
@@ -73,17 +79,23 @@ async fn download_post<'a>(
         .to_str()?
         .split("/")
         .last()
-        .expect("Last if a None value after split!");
+        .expect("Last if a None value after split!")
+        .to_string();
 
-    let mut dest = File::create(format!("{}/{}.{}", folder_path, file_name, file_type))?;
-    let content = response.text().await?;
+    let fpath = PathBuf::from(format!("{}/{}.{}", folder_path, file_name, &file_type));
+    let mut dest = File::create(&fpath)?;
 
-    io::copy(&mut content.as_bytes(), &mut dest)?;
+    let content = response.bytes().await?;
 
-    Ok(())
+    io::copy(&mut content.as_ref(), &mut dest)?;
+
+    Ok(DownloadedFile {
+        ftype: FileType::new(&file_type),
+        fpath,
+    })
 }
 
-async fn download_posts<'a>(
+async fn send_posts<'a>(
     bot: &crate::Bot,
     urls: &Vec<String>,
     chat_id: i64,
@@ -93,42 +105,55 @@ async fn download_posts<'a>(
     fs::create_dir_all(&folder_path)?;
 
     for (i, url) in urls.iter().enumerate() {
-        download_post(bot, url, &folder_path, i).await?;
+        let file = download_post(bot, url, &folder_path, i).await?;
+
+        match file.ftype {
+            FileType::JPEG => bot.send_photo(chat_id, file.fpath),
+            FileType::MP4 => bot.send_video(chat_id, file.fpath),
+        };
     }
 
-    fs::remove_dir(format!("./downloads/{}/", chat_id))?;
+    fs::remove_dir_all(format!("./downloads/{}/", chat_id))?;
 
     Ok(())
 }
 
 pub async fn execute(bot: &crate::Bot, message: Message) {
-    let messages = message
-        .text
-        .as_ref()
-        .unwrap()
-        .split(" ")
-        .collect::<Vec<&str>>();
-    let post_url = match messages.get(1) {
-        Some(url) => *url,
+    let post_url = message.text.as_ref().unwrap().split(" ").skip(1).last();
+    let post_url = match post_url {
+        Some(url) => url,
         None => {
-            return bot.send_message(
+            bot.send_message(
                 message.chat.id,
                 "Incorrect usage of download. See /help for assistance!",
-            )
+            );
+
+            return;
         }
     };
 
+    let progress_msg = bot.send_message(message.chat.id, "⏳Searching your post...");
+
     let urls = match fetch_post(bot, post_url).await {
         Ok(result) => result.urls,
-        Err(text) => return bot.send_message(message.chat.id, text),
+        Err(text) => {
+            bot.delete_message(progress_msg);
+            bot.send_message(message.chat.id, &text);
+
+            return;
+        }
     };
 
-    if let Err(err) = download_posts(bot, &urls, message.chat.id).await {
-        eprint!("Error while executing download_posts: {}", err);
+    bot.edit_message(&progress_msg, "Start sending your post...");
+
+    if let Err(err) = send_posts(bot, &urls, message.chat.id).await {
+        eprint!("Error while executing send_posts: {}", err);
 
         bot.send_message(
             message.chat.id,
-            "Something went wrong! Please, try again later!",
+            "Something went wrong! Please try again later!",
         );
     }
+
+    bot.send_message(message.chat.id, "Finished!");
 }
