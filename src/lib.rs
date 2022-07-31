@@ -3,8 +3,8 @@ mod commands;
 use commands::Command;
 use frankenstein::{AllowedUpdate, Error, UpdateContent};
 use frankenstein::{
-    Api, GetUpdatesParams, Message, SendMessageParams, SendPhotoParams, SendVideoParams,
-    TelegramApi,
+    Api, DeleteMessageParams, EditMessageTextParams, GetUpdatesParams, Message, SendMessageParams,
+    SendPhotoParams, SendVideoParams, TelegramApi,
 };
 use reqwest::Client;
 use std::path::PathBuf;
@@ -126,6 +126,39 @@ impl Bot {
             self.send_message(chat_id, "Something went wrong! Please try again later!");
 
             panic!("Failed to send video: {}", err);
+        }
+    }
+
+    fn edit_message(&self, message: &Message, new_text: &str) {
+        let edit_message_params = EditMessageTextParams::builder()
+            .chat_id(message.chat.id)
+            .text(new_text)
+            .message_id(message.message_id)
+            .build();
+
+        if let Err(err) = self.api.edit_message_text(&edit_message_params) {
+            self.send_message(
+                message.chat.id,
+                "Something went wrong! Please try again later!",
+            );
+
+            panic!("Failed to edit message: {}", err);
+        }
+    }
+
+    fn delete_message(&self, message: Message) {
+        let delete_message_params = DeleteMessageParams::builder()
+            .chat_id(message.chat.id)
+            .message_id(message.message_id)
+            .build();
+
+        if let Err(err) = self.api.delete_message(&delete_message_params) {
+            self.send_message(
+                message.chat.id,
+                "Something went wrong! Please try again later!",
+            );
+
+            panic!("Failed to delete message: {}", err);
         }
     }
 }
