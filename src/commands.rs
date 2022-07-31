@@ -1,4 +1,4 @@
-mod download;
+mod download_post;
 mod help;
 mod start;
 
@@ -6,7 +6,8 @@ use frankenstein::Message;
 
 pub enum Command {
     Start,
-    Dowload,
+    DowloadPost,
+    DownloadStories,
     Help,
 }
 
@@ -18,7 +19,8 @@ impl Command {
 
         match command {
             "/start" => Ok(Command::Start),
-            "/download" => Ok(Command::Dowload),
+            "/download_post" => Ok(Command::DowloadPost),
+            "/download_stories" => Ok(Command::DownloadStories),
             "/help" => Ok(Command::Help),
             _ => Err(()),
         }
@@ -27,7 +29,8 @@ impl Command {
     pub async fn execute(self, bot: &crate::Bot, message: Message) {
         match self {
             Command::Start => start::execute(bot, message),
-            Command::Dowload => download::execute(bot, message).await,
+            Command::DowloadPost => download_post::execute(bot, message).await,
+            Command::DownloadStories => todo!(),
             Command::Help => help::execute(bot, message),
         };
     }
