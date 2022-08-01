@@ -7,8 +7,7 @@ use frankenstein::{
     SendPhotoParams, SendVideoParams, TelegramApi,
 };
 use reqwest::Client;
-use std::path::PathBuf;
-use std::process;
+use std::{path::PathBuf, process};
 use tokio;
 
 #[macro_export]
@@ -96,7 +95,7 @@ impl Bot {
         self.api
             .send_message(&send_message_params)
             .unwrap_or_else(|err| {
-                eprint!("Failed to send message: {}", err);
+                eprintln!("Failed to send message: {}", err);
 
                 process::exit(1);
             })
@@ -110,7 +109,10 @@ impl Bot {
             .build();
 
         if let Err(err) = self.api.send_photo(&send_photo_params) {
-            self.send_message(chat_id, "Something went wrong! Please try again later!");
+            self.send_message(
+                chat_id,
+                "Something went wrong while sending your photo! Please try again later!",
+            );
 
             panic!("Failed to send photo: {}", err);
         }
@@ -123,7 +125,10 @@ impl Bot {
             .build();
 
         if let Err(err) = self.api.send_video(&send_video_params) {
-            self.send_message(chat_id, "Something went wrong! Please try again later!");
+            self.send_message(
+                chat_id,
+                "Something went wrong while sending your video! Please try again later!",
+            );
 
             panic!("Failed to send video: {}", err);
         }
@@ -159,6 +164,18 @@ impl Bot {
             );
 
             panic!("Failed to delete message: {}", err);
+        }
+    }
+
+    fn send_medias(&self, chat_id: i64, files: Vec<PathBuf>) {
+        for file in files {
+            let extension = file.extension().unwrap();
+
+            if extension == "jpeg" {
+                self.send_photo(chat_id, file);
+            } else {
+                self.send_video(chat_id, file);
+            }
         }
     }
 }
