@@ -1,12 +1,14 @@
-use crate::download::{self, ContentType};
+use crate::{
+    download::{self, ContentType},
+    utils,
+};
 use frankenstein::Message;
 use std::fs;
 
 pub async fn execute(bot: &crate::Bot, message: Message) {
-    let user = message.text.as_ref().unwrap().split(" ").skip(1).last();
-    let user = match user {
-        Some(name) => name,
-        None => {
+    let user = match utils::get_content(&message) {
+        Ok(res) => res,
+        Err(_) => {
             bot.send_message(
                 message.chat.id,
                 "Incorrect usage of download-stories. See /help for assistance!",
