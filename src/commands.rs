@@ -1,4 +1,5 @@
 mod download_post;
+mod download_stories;
 mod help;
 mod start;
 
@@ -30,7 +31,7 @@ impl Command {
         match self {
             Command::Start => start::execute(bot, message),
             Command::DowloadPost => download_post::execute(bot, message).await,
-            Command::DownloadStories => todo!(),
+            Command::DownloadStories => download_stories::execute(bot, message).await,
             Command::Help => help::execute(bot, message),
         };
     }
