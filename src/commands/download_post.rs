@@ -1,7 +1,4 @@
-#[path = "../download.rs"]
-mod download;
-
-use self::download::ContentType;
+use crate::download::{self, ContentType};
 use frankenstein::Message;
 use std::fs;
 
