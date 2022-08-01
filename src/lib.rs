@@ -1,5 +1,6 @@
 mod commands;
 mod download;
+mod utils;
 
 use commands::Command;
 use frankenstein::{AllowedUpdate, Error, UpdateContent};
