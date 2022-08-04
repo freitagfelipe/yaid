@@ -25,6 +25,8 @@ impl Waitlist {
 
 impl Clone for Waitlist {
     fn clone(&self) -> Waitlist {
-        Waitlist { list: Arc::clone(&self.list) }
+        Waitlist {
+            list: Arc::clone(&self.list),
+        }
     }
 }

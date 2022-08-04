@@ -1,6 +1,7 @@
 mod commands;
 mod download;
 mod utils;
+mod waitlist;
 
 use commands::Command;
 use frankenstein::{
@@ -10,6 +11,7 @@ use frankenstein::{
 use reqwest::Client;
 use std::{path::PathBuf, process};
 use tokio;
+use waitlist::Waitlist;
 
 #[macro_export]
 macro_rules! error {
@@ -52,6 +54,7 @@ impl Bot {
         let update_params_builder =
             GetUpdatesParams::builder().allowed_updates(vec![AllowedUpdate::Message]);
         let mut update_params = update_params_builder.clone().build();
+        let mut download_waitlist = Waitlist::new();
 
         loop {
             let response = match self.api.get_updates(&update_params) {
@@ -81,7 +84,29 @@ impl Bot {
                 }
 
                 if let Ok(command) = Command::new(&message) {
-                    tokio::spawn(async move { command.execute(&self, message).await });
+                    let chat_id = message.chat.id;
+
+                    match command {
+                        Command::DowloadPost | Command::DownloadStories => {
+                            if !download_waitlist.add_to_waitlist(chat_id) {
+                                self.send_message(
+                                    chat_id,
+                                    "I'm already executing a download, \
+                                    please wait it finish before running another!",
+                                );
+
+                                continue;
+                            }
+                        }
+                        _ => (),
+                    }
+
+                    let mut waitlist = download_waitlist.clone();
+
+                    tokio::spawn(async move {
+                        command.execute(&self, message).await;
+                        waitlist.remove_from_waitlist(chat_id);
+                    });
                 }
             }
         }
