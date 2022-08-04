@@ -3,10 +3,9 @@ mod download;
 mod utils;
 
 use commands::Command;
-use frankenstein::{AllowedUpdate, Error, UpdateContent};
 use frankenstein::{
-    Api, DeleteMessageParams, EditMessageTextParams, GetUpdatesParams, Message, SendMessageParams,
-    SendPhotoParams, SendVideoParams, TelegramApi,
+    AllowedUpdate, Api, DeleteMessageParams, EditMessageTextParams, Error, GetUpdatesParams,
+    Message, SendMessageParams, SendPhotoParams, SendVideoParams, TelegramApi, UpdateContent,
 };
 use reqwest::Client;
 use std::{path::PathBuf, process};
@@ -104,36 +103,53 @@ impl Bot {
             .result
     }
 
-    fn send_photo(&self, chat_id: i64, file_path: PathBuf) {
+    fn send_photo(&self, chat_id: i64, file_path: PathBuf) -> Result<(), ()> {
         let send_photo_params = SendPhotoParams::builder()
             .chat_id(chat_id)
             .photo(file_path)
             .build();
 
         if let Err(err) = self.api.send_photo(&send_photo_params) {
-            self.send_message(
-                chat_id,
-                "Something went wrong while sending your photo! Please try again later!",
-            );
+            eprintln!("Failed to send photo: {}", err);
 
-            panic!("Failed to send photo: {}", err);
+            return Err(());
         }
+
+        Ok(())
     }
 
-    fn send_video(&self, chat_id: i64, file_path: PathBuf) {
+    fn send_video(&self, chat_id: i64, file_path: PathBuf) -> Result<(), ()> {
         let send_video_params = SendVideoParams::builder()
             .chat_id(chat_id)
             .video(file_path)
             .build();
 
         if let Err(err) = self.api.send_video(&send_video_params) {
-            self.send_message(
-                chat_id,
-                "Something went wrong while sending your video! Please try again later!",
-            );
+            eprintln!("Failed to send video: {}", err);
 
-            panic!("Failed to send video: {}", err);
+            return Err(());
         }
+
+        Ok(())
+    }
+
+    fn send_medias(&self, chat_id: i64, files: Vec<PathBuf>) -> Result<(), ()> {
+        for file in files {
+            let result;
+            let extension = file.extension().unwrap();
+
+            if extension == "jpeg" {
+                result = self.send_photo(chat_id, file);
+            } else {
+                result = self.send_video(chat_id, file);
+            }
+
+            if let Err(_) = result {
+                return Err(());
+            }
+        }
+
+        Ok(())
     }
 
     fn edit_message(&self, message: &Message, new_text: &str) {
@@ -144,12 +160,7 @@ impl Bot {
             .build();
 
         if let Err(err) = self.api.edit_message_text(&edit_message_params) {
-            self.send_message(
-                message.chat.id,
-                "Something went wrong! Please try again later!",
-            );
-
-            panic!("Failed to edit message: {}", err);
+            eprintln!("Failed to edit message: {}", err);
         }
     }
 
@@ -160,24 +171,7 @@ impl Bot {
             .build();
 
         if let Err(err) = self.api.delete_message(&delete_message_params) {
-            self.send_message(
-                message.chat.id,
-                "Something went wrong! Please try again later!",
-            );
-
-            panic!("Failed to delete message: {}", err);
-        }
-    }
-
-    fn send_medias(&self, chat_id: i64, files: Vec<PathBuf>) {
-        for file in files {
-            let extension = file.extension().unwrap();
-
-            if extension == "jpeg" {
-                self.send_photo(chat_id, file);
-            } else {
-                self.send_video(chat_id, file);
-            }
+            eprintln!("Failed to delete message: {}", err);
         }
     }
 }
