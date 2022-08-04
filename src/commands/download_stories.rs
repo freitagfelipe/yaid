@@ -18,7 +18,7 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
         }
     };
 
-    let progress_msg = bot.send_message(message.chat.id, "⏳Searching user stories...");
+    let progress_msg = bot.send_message(message.chat.id, "⏳Searching the user stories...");
 
     let result = match download::fetch_content(bot, ContentType::Stories(user)).await {
         Ok(result) => result,
@@ -42,14 +42,21 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
             bot.delete_message(progress_msg);
             bot.send_message(
                 message.chat.id,
-                "Something went wrong! Please try again later!",
+                "Something went wrong while downloading the stories. Please try again later!",
             );
 
             return;
         }
     };
 
-    bot.send_medias(message.chat.id, files);
+    if let Err(_) = bot.send_medias(message.chat.id, files) {
+        bot.send_message(
+            message.chat.id,
+            "Something went wrong while sending the stories. Please try again later!",
+        );
+
+        return;
+    }
 
     bot.send_message(message.chat.id, "Finished!");
 

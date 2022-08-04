@@ -18,7 +18,7 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
         }
     };
 
-    let progress_msg = bot.send_message(message.chat.id, "⏳Searching your post...");
+    let progress_msg = bot.send_message(message.chat.id, "⏳Searching the post...");
 
     let result = match download::fetch_content(bot, ContentType::Post(post)).await {
         Ok(result) => result,
@@ -30,7 +30,7 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
         }
     };
 
-    bot.edit_message(&progress_msg, "Start sending your post...");
+    bot.edit_message(&progress_msg, "Start sending the post...");
 
     let result = download::download_contents(bot, result, message.chat.id).await;
 
@@ -42,14 +42,21 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
             bot.delete_message(progress_msg);
             bot.send_message(
                 message.chat.id,
-                "Something went wrong! Please try again later!",
+                "Something went wrong while downloading the post. Please try again later!",
             );
 
             return;
         }
     };
 
-    bot.send_medias(message.chat.id, files);
+    if let Err(_) = bot.send_medias(message.chat.id, files) {
+        bot.send_message(
+            message.chat.id,
+            "Something went wrong while sending the post. Please try again later!",
+        );
+
+        return;
+    }
 
     bot.send_message(message.chat.id, "Finished!");
 
