@@ -25,7 +25,7 @@ macro_rules! error {
         {
             error!(@reason $r);
 
-            error!(@error "Something went wrong! Please try again later!")
+            error!(@error "Something went wrong. Please try again later!")
         }
     };
     (e: $e:expr $(, r: $r:expr )?) => {

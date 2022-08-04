@@ -13,6 +13,11 @@ pub struct ResultContent {
     urls: Vec<String>,
 }
 
+#[derive(Deserialize)]
+pub struct ResultError {
+    message: String,
+}
+
 pub enum ContentType<'a> {
     Post(&'a str),
     Stories(&'a str),
@@ -46,22 +51,26 @@ pub async fn fetch_content(
         Err(err) => error!(r: err),
     };
 
-    let parsed_response = match response.status() {
+    let response = match response.status() {
         reqwest::StatusCode::OK => match response.json::<ResultContent>().await {
             Ok(parsed) => parsed,
             Err(_) => error!(r: "Can't parse the response to ResultContent!"),
         },
-        reqwest::StatusCode::NOT_FOUND => {
-            error!(e: "I can't download this see /help to figure why!")
+        reqwest::StatusCode::NOT_FOUND | reqwest::StatusCode::FORBIDDEN => {
+            let parsed = match response.json::<ResultError>().await {
+                Ok(parsed) => parsed,
+                Err(_) => error!(r: "Can't parse the response to ResultError!"),
+            };
+
+            let reason = format!("{}!", parsed.message);
+
+            error!(e: reason);
         }
         reqwest::StatusCode::NOT_ACCEPTABLE => error!(e: "Invaid url. See /help for assistance!"),
-        reqwest::StatusCode::FORBIDDEN => {
-            error!(e: "I can't download the stories of this profile becaus it's private!")
-        }
         status => error!(r: format!("Reponse error with status: {}", status)),
     };
 
-    Ok(parsed_response)
+    Ok(response)
 }
 
 async fn download_content(
