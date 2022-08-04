@@ -22,10 +22,10 @@ pub async fn fetch_content(
     bot: &crate::Bot,
     content: ContentType<'_>,
 ) -> Result<ResultContent, String> {
-    let url = env::var("URL").unwrap();
+    let base_url = env::var("URL").unwrap();
     let url = match content {
-        ContentType::Post(_) => format!("{}/fetch-post", url),
-        ContentType::Stories(_) => format!("{}/fetch-stories", url),
+        ContentType::Post(_) => format!("{}/fetch-post", base_url),
+        ContentType::Stories(_) => format!("{}/fetch-stories", base_url),
     };
     let auth_token = env::var("AUTH_TOKEN").unwrap();
     let query = match content {
@@ -54,7 +54,7 @@ pub async fn fetch_content(
         reqwest::StatusCode::NOT_FOUND => {
             error!(e: "I can't download this see /help to figure why!")
         }
-        reqwest::StatusCode::NOT_ACCEPTABLE => error!(e: "Invaid url! See /help for assistance!"),
+        reqwest::StatusCode::NOT_ACCEPTABLE => error!(e: "Invaid url. See /help for assistance!"),
         reqwest::StatusCode::FORBIDDEN => {
             error!(e: "I can't download the stories of this profile becaus it's private!")
         }
