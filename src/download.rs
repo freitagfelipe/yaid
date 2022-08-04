@@ -22,12 +22,12 @@ pub async fn fetch_content(
     bot: &crate::Bot,
     content: ContentType<'_>,
 ) -> Result<ResultContent, String> {
-    let base_url = env::var("URL").unwrap();
+    let base_url = env::var("BASE_URL").unwrap();
     let url = match content {
         ContentType::Post(_) => format!("{}/fetch-post", base_url),
         ContentType::Stories(_) => format!("{}/fetch-stories", base_url),
     };
-    let auth_token = env::var("AUTH_TOKEN").unwrap();
+    let auth_token = env::var("API_TOKEN").unwrap();
     let query = match content {
         ContentType::Post(post) => ("url", post),
         ContentType::Stories(user) => ("user", user),
