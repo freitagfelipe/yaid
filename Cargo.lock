@@ -1289,6 +1289,5 @@ dependencies = [
  "frankenstein",
  "reqwest",
  "serde",
- "serde_json",
  "tokio",
 ]
