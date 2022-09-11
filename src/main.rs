@@ -1,4 +1,4 @@
-use dotenv;
+use dotenvy::dotenv;
 use std::env;
 use yaid::Bot;
 
@@ -14,7 +14,7 @@ async fn main() {
 }
 
 fn setup() {
-    dotenv::dotenv().ok();
+    dotenv().ok();
 
     env::var("BOT_TOKEN").expect("BOT_TOKEN must be set!");
     env::var("BASE_URL").expect("BASE_URL must be set!");
