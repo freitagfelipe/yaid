@@ -1,4 +1,5 @@
 use crate::error;
+use reqwest::Client;
 use serde::Deserialize;
 use std::{
     env,
@@ -24,7 +25,7 @@ pub enum ContentType<'a> {
 }
 
 pub async fn fetch_content(
-    bot: &crate::Bot,
+    client: &Client,
     content: ContentType<'_>,
 ) -> Result<ResultContent, String> {
     let base_url = env::var("BASE_URL").unwrap();
@@ -38,8 +39,7 @@ pub async fn fetch_content(
         ContentType::Stories(user) => ("user", user),
     };
 
-    let response = bot
-        .client
+    let response = client
         .get(url)
         .query(&[query])
         .header("authorization", auth_token)
@@ -74,12 +74,12 @@ pub async fn fetch_content(
 }
 
 async fn download_content(
-    bot: &crate::Bot,
+    client: &Client,
     url: &str,
     folder_path: &PathBuf,
     file_name: usize,
 ) -> Result<PathBuf, Box<dyn Error>> {
-    let response = bot.client.get(url).send().await?;
+    let response = client.get(url).send().await?;
 
     let file_type = response
         .headers()
@@ -107,7 +107,7 @@ async fn download_content(
 }
 
 pub async fn download_contents(
-    bot: &crate::Bot,
+    client: &Client,
     result: ResultContent,
     chat_id: i64,
 ) -> Result<(PathBuf, Vec<PathBuf>), Box<dyn Error>> {
@@ -118,7 +118,7 @@ pub async fn download_contents(
     let mut files_path = Vec::new();
 
     for (i, url) in result.urls.iter().enumerate() {
-        let fpath = match download_content(bot, url, &folder_path, i).await {
+        let fpath = match download_content(client, url, &folder_path, i).await {
             Ok(fpath) => fpath,
             Err(err) => {
                 fs::remove_dir_all(&folder_path).unwrap_or_else(|e| {
