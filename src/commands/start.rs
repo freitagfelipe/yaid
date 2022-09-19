@@ -1,7 +1,9 @@
+use crate::messages;
 use frankenstein::Message;
 
 pub fn execute(bot: &crate::Bot, message: Message) {
-    bot.send_message(
+    messages::send_message(
+        &bot.api,
         message.chat.id,
         "Hi, my name is YAID and I can download Instagram posts and stories! \
         It's simple, I only have three easy-to-use commands:

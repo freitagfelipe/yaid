@@ -1,3 +1,4 @@
+use crate::messages;
 use crate::{
     download::{self, ContentType},
     utils,
@@ -9,7 +10,8 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
     let post = match utils::get_content(&message) {
         Ok(res) => res,
         Err(_) => {
-            bot.send_message(
+            messages::send_message(
+                &bot.api,
                 message.chat.id,
                 "Incorrect usage of download-post. See /help for assistance!",
             );
@@ -18,29 +20,30 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
         }
     };
 
-    let progress_msg = bot.send_message(message.chat.id, "⏳Searching the post...");
+    let progress_msg = messages::send_message(&bot.api, message.chat.id, "⏳Searching the post...");
 
-    let result = match download::fetch_content(bot, ContentType::Post(post)).await {
+    let result = match download::fetch_content(&bot.client, ContentType::Post(post)).await {
         Ok(result) => result,
         Err(text) => {
-            bot.delete_message(progress_msg);
-            bot.send_message(message.chat.id, &text);
+            messages::delete_message(&bot.api, progress_msg);
+            messages::send_message(&bot.api, message.chat.id, &text);
 
             return;
         }
     };
 
-    bot.edit_message(&progress_msg, "Start sending the post...");
+    messages::edit_message(&bot.api, &progress_msg, "Start sending the post...");
 
-    let result = download::download_contents(bot, result, message.chat.id).await;
+    let result = download::download_contents(&bot.client, result, message.chat.id).await;
 
     let (root_folder, files) = match result {
         Ok(paths) => paths,
         Err(err) => {
             eprintln!("Error while executing download contents: {}", err);
 
-            bot.delete_message(progress_msg);
-            bot.send_message(
+            messages::delete_message(&bot.api, progress_msg);
+            messages::send_message(
+                &bot.api,
                 message.chat.id,
                 "Something went wrong while downloading the post. Please try again later!",
             );
@@ -49,8 +52,9 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
         }
     };
 
-    if let Err(_) = bot.send_medias(message.chat.id, files) {
-        bot.send_message(
+    if let Err(_) = messages::send_medias(&bot.api, message.chat.id, files) {
+        messages::send_message(
+            &bot.api,
             message.chat.id,
             "Something went wrong while sending the post. Please try again later!",
         );
@@ -58,7 +62,7 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
         return;
     }
 
-    bot.send_message(message.chat.id, "Finished!");
+    messages::send_message(&bot.api, message.chat.id, "Finished!");
 
     fs::remove_dir_all(root_folder).unwrap_or_else(|e| {
         eprintln!("Error while deleting folder: {}", e);
