@@ -52,7 +52,7 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
         }
     };
 
-    if let Err(_) = messages::send_medias(&bot.api, message.chat.id, files) {
+    if messages::send_medias(&bot.api, message.chat.id, files).is_err() {
         messages::send_message(
             &bot.api,
             message.chat.id,

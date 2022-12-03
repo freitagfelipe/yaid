@@ -51,16 +51,15 @@ pub fn send_video(api: &Api, chat_id: i64, file_path: PathBuf) -> Result<(), ()>
 
 pub fn send_medias(api: &Api, chat_id: i64, files: Vec<PathBuf>) -> Result<(), ()> {
     for file in files {
-        let result;
         let extension = file.extension().unwrap();
 
-        if extension == "jpeg" {
-            result = send_photo(api, chat_id, file);
+        let result = if extension == "jpeg" {
+            send_photo(api, chat_id, file)
         } else {
-            result = send_video(api, chat_id, file);
-        }
+            send_video(api, chat_id, file)
+        };
 
-        if let Err(_) = result {
+        if result.is_err() {
             return Err(());
         }
     }

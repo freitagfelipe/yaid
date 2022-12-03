@@ -6,7 +6,7 @@ use std::{
     error::Error,
     fs::{self, File},
     io,
-    path::PathBuf,
+    path::{PathBuf, Path},
 };
 
 #[derive(Deserialize)]
@@ -76,7 +76,7 @@ pub async fn fetch_content(
 async fn download_content(
     client: &Client,
     url: &str,
-    folder_path: &PathBuf,
+    folder_path: &Path,
     file_name: usize,
 ) -> Result<PathBuf, Box<dyn Error>> {
     let response = client.get(url).send().await?;
@@ -86,7 +86,7 @@ async fn download_content(
         .get("content-type")
         .expect("Response don't have content-type!")
         .to_str()?
-        .split("/")
+        .split('/')
         .last()
         .expect("Last if a None value after split!")
         .to_string();

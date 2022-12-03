@@ -8,7 +8,6 @@ mod waitlist;
 use commands::Command;
 use frankenstein::{AllowedUpdate, Api, Error, GetUpdatesParams, TelegramApi, UpdateContent};
 use reqwest::Client;
-use tokio;
 use waitlist::Waitlist;
 
 pub struct Bot {
@@ -82,7 +81,7 @@ impl Bot {
                     let mut waitlist = download_waitlist.clone();
 
                     tokio::spawn(async move {
-                        command.execute(&self, message).await;
+                        command.execute(self, message).await;
                         waitlist.remove_from_waitlist(chat_id);
                     });
                 }
