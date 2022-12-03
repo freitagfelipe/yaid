@@ -16,7 +16,7 @@ impl Command {
     pub fn new(message: &Message) -> Result<Self, ()> {
         let text = message.text.as_ref().ok_or(())?;
 
-        let command = text.split(" ").collect::<Vec<&str>>()[0];
+        let command = text.split(' ').collect::<Vec<&str>>()[0];
 
         match command {
             "/start" => Ok(Command::Start),
