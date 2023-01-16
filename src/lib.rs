@@ -68,7 +68,7 @@ impl Bot {
                                 messages::send_message(
                                     &self.api,
                                     chat_id,
-                                    "I'm already executing a download, \
+                                    "I am already executing a download, \
                                     please wait it finish before running another!",
                                 );
 
