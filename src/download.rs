@@ -54,12 +54,12 @@ pub async fn fetch_content(
     let response = match response.status() {
         reqwest::StatusCode::OK => match response.json::<ResultContent>().await {
             Ok(parsed) => parsed,
-            Err(_) => error!(r: "Can't parse the response to ResultContent!"),
+            Err(_) => error!(r: "Can not parse the response to ResultContent!"),
         },
         reqwest::StatusCode::NOT_FOUND | reqwest::StatusCode::FORBIDDEN => {
             let parsed = match response.json::<ResultError>().await {
                 Ok(parsed) => parsed,
-                Err(_) => error!(r: "Can't parse the response to ResultError!"),
+                Err(_) => error!(r: "Can not parse the response to ResultError!"),
             };
 
             let reason = format!("{}!", parsed.message);
@@ -84,11 +84,11 @@ async fn download_content(
     let file_type = response
         .headers()
         .get("content-type")
-        .expect("Response don't have content-type!")
+        .expect("Response don not have content-type!")
         .to_str()?
         .split('/')
         .last()
-        .expect("Last if a None value after split!")
+        .expect("Last returned a None value after split!")
         .to_string();
 
     let fpath = PathBuf::from(format!(
