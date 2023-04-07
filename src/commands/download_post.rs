@@ -8,8 +8,8 @@ use std::fs;
 
 pub async fn execute(bot: &crate::Bot, message: Message) {
     let post = match utils::get_content(&message) {
-        Ok(res) => res,
-        Err(_) => {
+        Some(res) => res,
+        None => {
             messages::send_message(
                 &bot.api,
                 message.chat.id,
@@ -64,7 +64,7 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
 
     messages::send_message(&bot.api, message.chat.id, "Finished!");
 
-    fs::remove_dir_all(root_folder).unwrap_or_else(|e| {
-        eprintln!("Error while deleting folder: {}", e);
-    });
+    if let Err(err) = fs::remove_dir_all(root_folder) {
+        eprintln!("Error while deleting folder: {}", err);
+    }
 }
