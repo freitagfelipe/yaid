@@ -51,7 +51,7 @@ fn send_video(api: &Api, chat_id: i64, file_path: PathBuf) -> Result<(), ()> {
 
 pub fn send_medias(api: &Api, chat_id: i64, files: Vec<PathBuf>) -> Result<(), ()> {
     for file in files {
-        let extension = file.extension().unwrap();
+        let extension = file.extension().expect("Failed while getting the file extension");
 
         let result = if extension == "jpeg" {
             send_photo(api, chat_id, file)

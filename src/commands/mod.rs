@@ -16,7 +16,7 @@ impl Command {
     pub fn new(message: &Message) -> Option<Self> {
         let text = message.text.as_ref()?;
 
-        let command = text.split(' ').collect::<Vec<&str>>()[0];
+        let command = text.split(' ').next().expect("Failed while getting the command");
 
         match command {
             "/start" => Some(Command::Start),

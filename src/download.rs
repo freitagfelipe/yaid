@@ -121,9 +121,9 @@ pub async fn download_contents(
         let fpath = match download_content(client, url, &folder_path, i).await {
             Ok(fpath) => fpath,
             Err(err) => {
-                fs::remove_dir_all(&folder_path).unwrap_or_else(|e| {
-                    eprintln!("Error while deleting folder: {}", e);
-                });
+                if let Err(err) = fs::remove_dir_all(&folder_path) {
+                    eprintln!("Error while deleting folder: {}", err);
+                }
 
                 return Err(err);
             }
