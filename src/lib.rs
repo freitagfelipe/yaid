@@ -59,7 +59,7 @@ impl Bot {
                     }
                 }
 
-                if let Ok(command) = Command::new(&message) {
+                if let Some(command) = Command::new(&message) {
                     let chat_id = message.chat.id;
 
                     match command {

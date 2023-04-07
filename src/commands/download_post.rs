@@ -8,8 +8,8 @@ use std::fs;
 
 pub async fn execute(bot: &crate::Bot, message: Message) {
     let post = match utils::get_content(&message) {
-        Ok(res) => res,
-        Err(_) => {
+        Some(res) => res,
+        None => {
             messages::send_message(
                 &bot.api,
                 message.chat.id,

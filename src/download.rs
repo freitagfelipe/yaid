@@ -6,7 +6,7 @@ use std::{
     error::Error,
     fs::{self, File},
     io,
-    path::{PathBuf, Path},
+    path::{Path, PathBuf},
 };
 
 #[derive(Deserialize)]
@@ -30,8 +30,8 @@ pub async fn fetch_content(
 ) -> Result<ResultContent, String> {
     let base_url = env::var("BASE_URL").unwrap();
     let url = match content {
-        ContentType::Post(_) => format!("{}/fetch-post", base_url),
-        ContentType::Stories(_) => format!("{}/fetch-stories", base_url),
+        ContentType::Post(_) => format!("{base_url}/fetch-post"),
+        ContentType::Stories(_) => format!("{base_url}/fetch-stories"),
     };
     let auth_token = env::var("API_TOKEN").unwrap();
     let query = match content {
@@ -67,7 +67,7 @@ pub async fn fetch_content(
             error!(e: reason);
         }
         reqwest::StatusCode::NOT_ACCEPTABLE => error!(e: "Invaid url. See /help for assistance!"),
-        status => error!(r: format!("Reponse error with status: {}", status)),
+        status => error!(r: format!("Reponse error with status: {status}")),
     };
 
     Ok(response)
@@ -111,7 +111,7 @@ pub async fn download_contents(
     result: ResultContent,
     chat_id: i64,
 ) -> Result<(PathBuf, Vec<PathBuf>), Box<dyn Error>> {
-    let folder_path = PathBuf::from(format!("./downloads/{}/", chat_id));
+    let folder_path = PathBuf::from(format!("./downloads/{chat_id}/"));
 
     fs::create_dir_all(&folder_path)?;
 

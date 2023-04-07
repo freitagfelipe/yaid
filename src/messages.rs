@@ -19,7 +19,7 @@ pub fn send_message(api: &Api, chat_id: i64, text: &str) -> Message {
         .result
 }
 
-pub fn send_photo(api: &Api, chat_id: i64, file_path: PathBuf) -> Result<(), ()> {
+fn send_photo(api: &Api, chat_id: i64, file_path: PathBuf) -> Result<(), ()> {
     let send_photo_params = SendPhotoParams::builder()
         .chat_id(chat_id)
         .photo(file_path)
@@ -34,7 +34,7 @@ pub fn send_photo(api: &Api, chat_id: i64, file_path: PathBuf) -> Result<(), ()>
     Ok(())
 }
 
-pub fn send_video(api: &Api, chat_id: i64, file_path: PathBuf) -> Result<(), ()> {
+fn send_video(api: &Api, chat_id: i64, file_path: PathBuf) -> Result<(), ()> {
     let send_video_params = SendVideoParams::builder()
         .chat_id(chat_id)
         .video(file_path)

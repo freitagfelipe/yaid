@@ -13,17 +13,16 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn new(message: &Message) -> Result<Self, ()> {
-        let text = message.text.as_ref().ok_or(())?;
+    pub fn new(message: &Message) -> Option<Self> {
+        let text = message.text.as_ref()?;
 
         let command = text.split(' ').collect::<Vec<&str>>()[0];
 
         match command {
-            "/start" => Ok(Command::Start),
-            "/download_post" => Ok(Command::DowloadPost),
-            "/download_stories" => Ok(Command::DownloadStories),
-            "/help" => Ok(Command::Help),
-            _ => Err(()),
+            "/start" => Some(Command::Start),
+            "/download_post" => Some(Command::DowloadPost),
+            "/download_stories" => Some(Command::DownloadStories),
+            _ => Some(Command::Help),
         }
     }
 
