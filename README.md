@@ -1,10 +1,10 @@
-# [YAID](https://t.me/yaid_bot)
+# [YAID BOT](https://t.me/yaid_bot)
 
-- YAID is a Telegram bot that can download Instagram posts and stories from public users.
+- YAID BOT is a Telegram bot that can download Instagram posts and stories from public users using the [YAID API](https://github.com/freitagfelipe/yaid-api).
 
-## How YAID was made
+## How YAID BOT was made
 
-- YAID is written in Rust, using [frankenstein](https://crates.io/crates/frankenstein) crate to communicate with the Telegram API and other crates like:
+- YAID BOT is written in Rust, using [frankenstein](https://crates.io/crates/frankenstein) crate to communicate with the Telegram API and other crates like:
     - [dotenv](https://crates.io/crates/dotenv)
     - [reqwest](https://crates.io/crates/reqwest)
     - [serde](https://crates.io/crates/serde)
