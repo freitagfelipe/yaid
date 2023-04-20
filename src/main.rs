@@ -18,5 +18,4 @@ fn setup() {
 
     env::var("BOT_TOKEN").expect("BOT_TOKEN must be set!");
     env::var("BASE_URL").expect("BASE_URL must be set!");
-    env::var("API_TOKEN").expect("API_TOKEN must be set!");
 }

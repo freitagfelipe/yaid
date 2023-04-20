@@ -33,18 +33,12 @@ pub async fn fetch_content(
         ContentType::Post(_) => format!("{base_url}/fetch-post"),
         ContentType::Stories(_) => format!("{base_url}/fetch-stories"),
     };
-    let auth_token = env::var("API_TOKEN").unwrap();
     let query = match content {
         ContentType::Post(post) => ("url", post),
         ContentType::Stories(user) => ("user", user),
     };
 
-    let response = client
-        .get(url)
-        .query(&[query])
-        .header("authorization", auth_token)
-        .send()
-        .await;
+    let response = client.get(url).query(&[query]).send().await;
 
     let response = match response {
         Ok(response) => response,
