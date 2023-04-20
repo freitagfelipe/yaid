@@ -15,11 +15,17 @@ impl Waitlist {
     }
 
     pub fn add_to_waitlist(&mut self, id: i64) -> bool {
-        self.list.lock().expect("Failed while trying to acquire the waitlist mutex").insert(id)
+        self.list
+            .lock()
+            .expect("Failed while trying to acquire the waitlist mutex")
+            .insert(id)
     }
 
     pub fn remove_from_waitlist(&mut self, id: i64) -> bool {
-        self.list.lock().expect("Failed while trying to acquire the waitlist mutex").remove(&id)
+        self.list
+            .lock()
+            .expect("Failed while trying to acquire the waitlist mutex")
+            .remove(&id)
     }
 }
 
