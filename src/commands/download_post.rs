@@ -1,32 +1,38 @@
 use crate::messages;
 use crate::{
+    commands::CommandInformation,
     download::{self, ContentType},
     utils,
 };
-use frankenstein::Message;
 use std::fs;
 
-pub async fn execute(bot: &crate::Bot, message: Message) {
-    let post = match utils::get_content(&message) {
+pub async fn execute(bot: &crate::Bot, command_information: &CommandInformation) {
+    let post = match utils::get_content(&command_information.text) {
         Some(res) => res,
         None => {
             messages::send_message(
                 &bot.api,
-                message.chat.id,
+                command_information.chat_id,
                 "Incorrect usage of download-post. See /help for assistance!",
+                None,
             );
 
             return;
         }
     };
 
-    let progress_msg = messages::send_message(&bot.api, message.chat.id, "⏳Searching the post...");
+    let progress_msg = messages::send_message(
+        &bot.api,
+        command_information.chat_id,
+        "⏳Searching the post...",
+        None,
+    );
 
     let result = match download::fetch_content(&bot.client, ContentType::Post(post)).await {
         Ok(result) => result,
         Err(text) => {
             messages::delete_message(&bot.api, progress_msg);
-            messages::send_message(&bot.api, message.chat.id, &text);
+            messages::send_message(&bot.api, command_information.chat_id, &text, None);
 
             return;
         }
@@ -34,7 +40,8 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
 
     messages::edit_message(&bot.api, &progress_msg, "Start sending the post...");
 
-    let result = download::download_contents(&bot.client, result, message.chat.id).await;
+    let result =
+        download::download_contents(&bot.client, result, command_information.chat_id).await;
 
     let (root_folder, files) = match result {
         Ok(paths) => paths,
@@ -44,25 +51,27 @@ pub async fn execute(bot: &crate::Bot, message: Message) {
             messages::delete_message(&bot.api, progress_msg);
             messages::send_message(
                 &bot.api,
-                message.chat.id,
+                command_information.chat_id,
                 "Something went wrong while downloading the post. Please try again later!",
+                None,
             );
 
             return;
         }
     };
 
-    if messages::send_medias(&bot.api, message.chat.id, files).is_err() {
+    if messages::send_medias(&bot.api, command_information.chat_id, files).is_err() {
         messages::send_message(
             &bot.api,
-            message.chat.id,
+            command_information.chat_id,
             "Something went wrong while sending the post. Please try again later!",
+            None,
         );
 
         return;
     }
 
-    messages::send_message(&bot.api, message.chat.id, "Finished!");
+    messages::send_message(&bot.api, command_information.chat_id, "Finished!", None);
 
     if let Err(err) = fs::remove_dir_all(root_folder) {
         eprintln!("Error while deleting folder: {}", err);

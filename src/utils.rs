@@ -1,7 +1,5 @@
-use frankenstein::Message;
-
-pub fn get_content(message: &Message) -> Option<&str> {
-    let content = message.text.as_ref().unwrap().split(' ').skip(1).last();
+pub fn get_content(message: &str) -> Option<&str> {
+    let content = message.split(' ').skip(1).last();
 
     match content {
         Some(res) => Some(res.trim()),

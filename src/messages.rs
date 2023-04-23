@@ -1,14 +1,44 @@
 use frankenstein::{
-    Api, DeleteMessageParams, EditMessageTextParams, Message, SendMessageParams, SendPhotoParams,
-    SendVideoParams, TelegramApi,
+    Api, DeleteMessageParams, EditMessageReplyMarkupParams, EditMessageTextParams,
+    InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup, SendMessageParams,
+    SendPhotoParams, SendVideoParams, TelegramApi,
 };
 use std::{path::PathBuf, process};
 
-pub fn send_message(api: &Api, chat_id: i64, text: &str) -> Message {
-    let send_message_params = SendMessageParams::builder()
-        .chat_id(chat_id)
-        .text(text)
-        .build();
+pub struct ReplyWithKeyboard {
+    pub keyboard: Vec<Vec<InlineKeyboardButton>>,
+    pub message_id: i32,
+}
+
+pub fn send_message(
+    api: &Api,
+    chat_id: i64,
+    text: &str,
+    reply_with_keyboard: Option<ReplyWithKeyboard>,
+) -> Message {
+    let message_id = reply_with_keyboard.as_ref().map(|reply| reply.message_id);
+
+    let keyboard_markup = reply_with_keyboard.map(|reply| {
+        InlineKeyboardMarkup::builder()
+            .inline_keyboard(reply.keyboard)
+            .build()
+    });
+
+    let send_message_params_builder = SendMessageParams::builder();
+
+    let send_message_params = match (keyboard_markup, message_id) {
+        (Some(markup), Some(message_id)) => send_message_params_builder
+            .reply_to_message_id(message_id)
+            .chat_id(chat_id)
+            .text(text)
+            .reply_markup(ReplyMarkup::InlineKeyboardMarkup(markup))
+            .build(),
+        (None, None) => send_message_params_builder
+            .text(text)
+            .chat_id(chat_id)
+            .build(),
+        _ => unreachable!(),
+    };
 
     api.send_message(&send_message_params)
         .unwrap_or_else(|err| {
@@ -41,7 +71,7 @@ fn send_video(api: &Api, chat_id: i64, file_path: PathBuf) -> Result<(), ()> {
         .build();
 
     if let Err(err) = api.send_video(&send_video_params) {
-        eprintln!("Failed to send video: {}", err);
+        eprintln!("Failed to send video: {err}");
 
         return Err(());
     }
@@ -77,7 +107,18 @@ pub fn edit_message(api: &Api, message: &Message, new_text: &str) {
         .build();
 
     if let Err(err) = api.edit_message_text(&edit_message_params) {
-        eprintln!("Failed to edit message: {}", err);
+        eprintln!("Failed to edit message: {err}");
+    }
+}
+
+pub fn remove_keyboard(api: &Api, message: &Message) {
+    let edit_message_params = EditMessageReplyMarkupParams::builder()
+        .chat_id(message.chat.id)
+        .message_id(message.message_id)
+        .build();
+
+    if let Err(err) = api.edit_message_reply_markup(&edit_message_params) {
+        eprintln!("Failed to remove markup: {err}")
     }
 }
 
@@ -88,6 +129,6 @@ pub fn delete_message(api: &Api, message: Message) {
         .build();
 
     if let Err(err) = api.delete_message(&delete_message_params) {
-        eprintln!("Failed to delete message: {}", err);
+        eprintln!("Failed to delete message: {err}");
     }
 }
