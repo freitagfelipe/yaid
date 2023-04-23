@@ -29,6 +29,7 @@ pub async fn fetch_content(
     content: ContentType<'_>,
 ) -> Result<ResultContent, String> {
     let base_url = env::var("BASE_URL").unwrap();
+    let origin_url = env::var("ORIGIN_URL").unwrap();
     let url = match content {
         ContentType::Post(_) => format!("{base_url}/fetch-post"),
         ContentType::Stories(_) => format!("{base_url}/fetch-stories"),
@@ -38,7 +39,12 @@ pub async fn fetch_content(
         ContentType::Stories(user) => ("user", user),
     };
 
-    let response = client.get(url).query(&[query]).send().await;
+    let response = client
+        .get(url)
+        .query(&[query])
+        .header("Origin", origin_url)
+        .send()
+        .await;
 
     let response = match response {
         Ok(response) => response,
