@@ -1,5 +1,6 @@
 mod commands;
 mod download;
+mod handlers;
 mod macros;
 mod messages;
 mod utils;
@@ -27,8 +28,8 @@ impl Bot {
     }
 
     pub fn get_updates(&'static self) {
-        let update_params_builder =
-            GetUpdatesParams::builder().allowed_updates(vec![AllowedUpdate::Message]);
+        let update_params_builder = GetUpdatesParams::builder()
+            .allowed_updates(vec![AllowedUpdate::Message, AllowedUpdate::CallbackQuery]);
         let mut update_params = update_params_builder.clone().build();
         let mut download_waitlist = Waitlist::new();
 
@@ -48,41 +49,41 @@ impl Bot {
                     .offset(update.update_id + 1)
                     .build();
 
-                let message = match update.content {
-                    UpdateContent::Message(message) => message,
+                let (command, information, from_bot) = match update.content {
+                    UpdateContent::Message(message) => handlers::handle_message_update(&message),
+                    UpdateContent::CallbackQuery(callback) => {
+                        handlers::handle_callback_query_update(self, &callback)
+                    }
                     _ => unreachable!(),
                 };
 
-                if let Some(user) = message.from.as_ref() {
-                    if user.is_bot {
-                        continue;
-                    }
+                if from_bot {
+                    continue;
                 }
 
-                if let Some(command) = Command::new(&message) {
-                    let chat_id = message.chat.id;
-
+                if let Some(command) = command {
                     match command {
                         Command::DowloadPost | Command::DownloadStories => {
-                            if !download_waitlist.add_to_waitlist(chat_id) {
+                            if !download_waitlist.add_to_waitlist(information.chat_id) {
                                 messages::send_message(
                                     &self.api,
-                                    chat_id,
+                                    information.chat_id,
                                     "I am already executing a download, \
                                     please wait it finish before running another!",
+                                    None,
                                 );
 
                                 continue;
                             }
                         }
-                        _ => (),
+                        _ => {}
                     }
 
                     let mut waitlist = download_waitlist.clone();
 
                     tokio::spawn(async move {
-                        command.execute(self, message).await;
-                        waitlist.remove_from_waitlist(chat_id);
+                        command.execute(self, &information).await;
+                        waitlist.remove_from_waitlist(information.chat_id);
                     });
                 }
             }
