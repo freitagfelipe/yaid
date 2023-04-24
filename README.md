@@ -12,6 +12,13 @@
 
 ## Commands help
 
+- If you just send a message without a command YAID will ask you what you want to do with three options, you will hit the first option if was a message with a post url, or the second option if was a message with an username, or the third if the message was a mistake.
+
+### start
+
+- Description: explain to you how to use me.
+- Usage: /start
+
 #### download-post
 
 - Description: download a post from a public user.

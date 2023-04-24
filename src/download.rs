@@ -66,7 +66,16 @@ pub async fn fetch_content(
 
             error!(e: reason);
         }
-        reqwest::StatusCode::NOT_ACCEPTABLE => error!(e: "Invaid url. See /help for assistance!"),
+        reqwest::StatusCode::NOT_ACCEPTABLE => {
+            let parsed = match response.json::<ResultError>().await {
+                Ok(parsed) => parsed,
+                Err(_) => error!(r: "Can not parse the response to ResultError!"),
+            };
+
+            let reason = format!("{}. See /help for assistance!", parsed.message);
+
+            error!(e: reason)
+        }
         status => error!(r: format!("Reponse error with status: {status}")),
     };
 

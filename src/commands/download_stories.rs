@@ -1,18 +1,29 @@
 use crate::{
     commands::CommandInformation,
     download::{self, ContentType},
-    messages, utils,
+    messages,
+    utils::{self, Error},
 };
 use std::fs;
 
 pub async fn execute(bot: &crate::Bot, command_information: &CommandInformation) {
     let user = match utils::get_content(&command_information.text) {
-        Some(res) => res,
-        None => {
+        Ok(res) => res,
+        Err(Error::TooMuchParameters) => {
             messages::send_message(
                 &bot.api,
                 command_information.chat_id,
-                "Incorrect usage of download-stories. See /help for assistance!",
+                "Incorrect usage of download-stories too much parameters. See /help for assistance!",
+                None,
+            );
+
+            return;
+        }
+        Err(Error::NoSecondParameter) => {
+            messages::send_message(
+                &bot.api,
+                command_information.chat_id,
+                "Incorrect usage of download-stories missing username. See /help for assistance!",
                 None,
             );
 
