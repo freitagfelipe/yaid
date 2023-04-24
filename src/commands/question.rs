@@ -5,16 +5,14 @@ use crate::{
 use frankenstein::InlineKeyboardButton;
 
 pub fn execute(bot: &crate::Bot, command_information: &CommandInformation) {
-    let text = &command_information.text;
-
     let keyboard = vec![
         vec![InlineKeyboardButton::builder()
             .text("Yes, download this post!!!")
-            .callback_data(format!("/download_post {text}"))
+            .callback_data("/download_post")
             .build()],
         vec![InlineKeyboardButton::builder()
             .text("Yes, download the stories of this user!!!")
-            .callback_data(format!("/download_stories {text}"))
+            .callback_data("/download_stories")
             .build()],
         vec![InlineKeyboardButton::builder()
             .text("No, it was a mistake!!!")
