@@ -41,15 +41,11 @@ impl Command {
     }
 
     pub fn from_callback_query(callback_query: &CallbackQuery) -> Option<Self> {
-        let text = callback_query
+        let command = callback_query
             .data
             .as_ref()
-            .expect("Expect data in callback query");
-
-        let command = text
-            .split(' ')
-            .next()
-            .expect("Failed while getting the callback command");
+            .expect("Expect data in callback query")
+            .as_str();
 
         match command {
             "/download_post" => Some(Command::DowloadPost),
