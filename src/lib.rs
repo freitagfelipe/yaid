@@ -49,12 +49,16 @@ impl Bot {
                     .offset(update.update_id + 1)
                     .build();
 
-                let (command, information, from_bot) = match update.content {
+                let needed_information = match update.content {
                     UpdateContent::Message(message) => handlers::handle_message_update(&message),
                     UpdateContent::CallbackQuery(callback) => {
                         handlers::handle_callback_query_update(self, &callback)
                     }
                     _ => unreachable!(),
+                };
+
+                let Some((command, information, from_bot)) = needed_information else {
+                    continue;
                 };
 
                 if from_bot {
